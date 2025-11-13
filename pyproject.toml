@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sqlmask"
+version = "0.1.0"
+description = "Anonymize SQL statements."
+authors = [{name = "Kyungho Byoun", email = "kyungho.byoun@gmail.com"}]
+license = "BSD-3-Clause"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "sqlparse>=0.5,<0.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/Byunk/sqlmask"
+Repository = "https://github.com/Byunk/sqlmask"
+Issues = "https://github.com/Byunk/sqlmask/issues"
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["sqlmask"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+addopts = [
+    "--cov=sqlmask",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+
+[tool.coverage.run]
+source = ["sqlmask"]
+omit = ["*/tests/*", "*/test_*.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+fail_under = 80
+
+[tool.ruff]
+line-length = 120
+
+[dependency-groups]
+dev = [
+    "pytest>=9,<10",
+    "pytest-cov>=6,<7",
+    "ruff>=0.14,<0.15",
+]

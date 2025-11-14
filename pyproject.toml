@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sqlmask"
-version = "0.1.0"
+version = "0.1.1"
 description = "Anonymize SQL statements."
 authors = [{name = "Kyungho Byoun", email = "kyungho.byoun@gmail.com"}]
 license = "BSD-3-Clause"

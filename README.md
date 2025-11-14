@@ -32,4 +32,5 @@ print(result) # INSERT INTO products (name, price) VALUES (?, ?)
 
 ## Options
 
-- `format`: Enable SQL query formatting (uppercase keywords, lowercase identifiers, reindentation) when masking queries. Useful for SQL pattern analysis to consolidate the format of the SQL.
+- `format`: Consolidate the format of the SQL query.
+- `remove_limit`: Remove LIMIT, OFFSET, and TOP clauses from SQL queries.

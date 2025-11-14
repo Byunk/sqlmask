@@ -23,8 +23,10 @@ class SQLMask:
     def __init__(
         self,
         format: bool = False,
+        remove_limit: bool = False,
     ):
         self.format = format
+        self.remove_limit = remove_limit
 
     def mask(self, sql: str) -> str:
         if self.format:
@@ -43,8 +45,35 @@ class SQLMask:
     def _mask_tokens(self, tokens: list[ss.Token]) -> str:
         result = []
         prev_token = None
+        skip_until_number = False
 
         for token in tokens:
+            # Check if this is a LIMIT/OFFSET/TOP keyword that should be removed
+            if self.remove_limit and self._is_remove_limit_keyword(token):
+                # Remove trailing whitespace from result
+                while result and result[-1].strip() == "":
+                    result.pop()
+                # Also trim trailing whitespace from the last string if it has content
+                if result and result[-1]:
+                    result[-1] = result[-1].rstrip()
+                skip_until_number = True
+                if not token.is_whitespace:
+                    prev_token = token
+                continue
+
+            # When in skip mode, skip whitespace and the number
+            if skip_until_number:
+                if token.is_whitespace:
+                    continue
+                elif self._is_number_literal_type(token):
+                    skip_until_number = False
+                    if not token.is_whitespace:
+                        prev_token = token
+                    continue
+                else:
+                    # Hit something unexpected, stop skipping
+                    skip_until_number = False
+
             if self._is_recursive_token_type(token):
                 result.append(self._process_recursive_token(token))
             elif isinstance(token, ss.Parenthesis):
@@ -75,6 +104,20 @@ class SQLMask:
 
     def _is_boolean_keyword(self, token: ss.Token) -> bool:
         return token.ttype == st.Keyword and token.value.upper() in self.BOOLEAN_KEYWORDS
+
+    def _is_remove_limit_keyword(self, token: ss.Token) -> bool:
+        # Check for keyword tokens (LIMIT, OFFSET)
+        if token.ttype == st.Keyword and token.value.upper() in self.NO_MASK_KEYWORDS:
+            return True
+        # Check for Identifier groups containing TOP/LIMIT/OFFSET as Name
+        if isinstance(token, ss.Identifier):
+            # Check the first non-whitespace token in the identifier
+            for subtoken in token.tokens:
+                if not subtoken.is_whitespace:
+                    if subtoken.ttype == st.Name and subtoken.value.upper() in self.NO_MASK_KEYWORDS:
+                        return True
+                    break
+        return False
 
     def _is_recursive_token_type(self, token: ss.Token) -> bool:
         return isinstance(token, self.RECURSIVE_TOKEN_TYPES)

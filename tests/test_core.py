@@ -377,6 +377,108 @@ class TestSQLMask:
         assert mask(sql.strip()) == expected.strip()
 
 
+class TestRemoveLimit:
+    @pytest.mark.parametrize(
+        "sql,expected",
+        [
+            # LIMIT
+            (
+                "SELECT * FROM products WHERE category = 'books' ORDER BY price DESC LIMIT 10",
+                "SELECT * FROM products WHERE category = ? ORDER BY price DESC",
+            ),
+            # OFFSET
+            (
+                "SELECT * FROM users WHERE age > 25 OFFSET 5",
+                "SELECT * FROM users WHERE age > ?",
+            ),
+            # TOP (SQL Server)
+            (
+                "SELECT TOP 10 * FROM orders WHERE status = 'pending'",
+                "SELECT * FROM orders WHERE status = ?",
+            ),
+        ],
+    )
+    def test_remove_limit_single_clause(self, sql: str, expected: str):
+        assert mask(sql, remove_limit=True) == expected
+
+    @pytest.mark.parametrize(
+        "sql,expected",
+        [
+            (
+                "SELECT * FROM users WHERE age > 25 LIMIT 10 OFFSET 5",
+                "SELECT * FROM users WHERE age > ?",
+            ),
+            (
+                "SELECT * FROM products ORDER BY price DESC LIMIT 20 OFFSET 10",
+                "SELECT * FROM products ORDER BY price DESC",
+            ),
+        ],
+    )
+    def test_remove_limit_combined(self, sql: str, expected: str):
+        assert mask(sql, remove_limit=True) == expected
+
+    @pytest.mark.parametrize(
+        "sql,expected",
+        [
+            # Subquery
+            (
+                "SELECT * FROM users WHERE id IN (SELECT user_id FROM orders WHERE total > 100 LIMIT 5)",
+                "SELECT * FROM users WHERE id IN (SELECT user_id FROM orders WHERE total > ?)",
+            ),
+            # CTE
+            (
+                """WITH top_orders AS (
+                SELECT user_id, total FROM orders WHERE total > 1000 LIMIT 10
+            )
+            SELECT * FROM top_orders WHERE user_id = 5""",
+                """WITH top_orders AS (
+                SELECT user_id, total FROM orders WHERE total > ?
+            )
+            SELECT * FROM top_orders WHERE user_id = ?""",
+            ),
+            # Nested subquery
+            (
+                """SELECT * FROM users
+            WHERE id IN (
+                SELECT user_id FROM orders
+                WHERE product_id IN (
+                    SELECT id FROM products WHERE price > 50 LIMIT 3
+                ) LIMIT 10
+            )""",
+                """SELECT * FROM users
+            WHERE id IN (
+                SELECT user_id FROM orders
+                WHERE product_id IN (
+                    SELECT id FROM products WHERE price > ?
+                )
+            )""",
+            ),
+        ],
+    )
+    def test_remove_limit_nested(self, sql: str, expected: str):
+        assert mask(sql.strip(), remove_limit=True) == expected.strip()
+
+    def test_remove_limit_with_other_clauses(self):
+        sql = """
+            SELECT category, COUNT(*) as count
+            FROM products
+            WHERE price > 10 AND status = 'active'
+            GROUP BY category
+            HAVING COUNT(*) > 5
+            ORDER BY count DESC
+            LIMIT 20
+        """
+        expected = """
+            SELECT category, COUNT(*) as count
+            FROM products
+            WHERE price > ? AND status = ?
+            GROUP BY category
+            HAVING COUNT(*) > ?
+            ORDER BY count DESC
+        """
+        assert mask(sql.strip(), remove_limit=True) == expected.strip()
+
+
 class TestSQLMaskFormatting:
     def test_format(self):
         masker = SQLMask(format=True)

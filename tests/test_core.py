@@ -13,9 +13,8 @@ class TestSQLMask:
         assert mask(sql) == expected
 
     def test_boolean_literals(self):
-        """Should not mask boolean literals."""
         sql = "SELECT * FROM users WHERE is_active = true AND is_admin = false"
-        expected = "SELECT * FROM users WHERE is_active = true AND is_admin = false"
+        expected = "SELECT * FROM users WHERE is_active = ? AND is_admin = ?"
         assert mask(sql) == expected
 
     def test_in_clause(self):

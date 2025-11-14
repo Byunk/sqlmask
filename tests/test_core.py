@@ -1,4 +1,7 @@
+from textwrap import dedent
 from sqlmask import mask
+from sqlmask.core import SQLMask
+import pytest
 
 
 class TestSQLMask:
@@ -372,3 +375,41 @@ class TestSQLMask:
             AND status IN (?)
         """
         assert mask(sql.strip()) == expected.strip()
+
+
+class TestSQLMaskFormatting:
+    def test_format(self):
+        masker = SQLMask(format=True)
+        sql = "select * from users where age > 30 and status = 'active'"
+        expected = "SELECT *\nFROM users\nWHERE age > ?\n  AND status = ?"
+        result = masker.mask(sql)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "sql",
+        [
+            "select * from users where age > 25",
+            "SELECT * FROM users WHERE age > 25",
+            "SeLeCt * FrOm users WhErE age > 25",
+            """select *
+            from users
+            where age > 25""",
+        ],
+    )
+    def test_format_consistency(self, sql: str):
+        masker = SQLMask(format=True)
+        expected = "SELECT *\nFROM users\nWHERE age > ?"
+        result = masker.mask(sql)
+        assert result == expected
+
+    def test_format_with_cte(self):
+        masker = SQLMask(format=True)
+        sql = """
+            WITH active_users AS (
+                SELECT id FROM users WHERE status = 'active'
+            )
+            SELECT * FROM active_users WHERE id > 10
+        """
+        expected = "WITH active_users AS\n  (SELECT id\n   FROM users\n   WHERE status = ?)\nSELECT *\nFROM active_users\nWHERE id > ?"
+        result = masker.mask(sql)
+        assert result == expected

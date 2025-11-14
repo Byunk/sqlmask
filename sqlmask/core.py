@@ -20,7 +20,23 @@ class SQLMask:
     BOOLEAN_KEYWORDS = ("TRUE", "FALSE")
     NO_MASK_KEYWORDS = ("LIMIT", "OFFSET", "TOP")
 
+    def __init__(
+        self,
+        format: bool = False,
+    ):
+        self.format = format
+
     def mask(self, sql: str) -> str:
+        if self.format:
+            sql = sqlparse.format(
+                sql,
+                keyword_case="upper",
+                identifier_case="lower",
+                reindent=True,
+                use_space_around_operators=True,
+                strip_comments=True,
+            )
+
         parsed = sqlparse.parse(sql)
         return self._mask_tokens(parsed[0].tokens)
 

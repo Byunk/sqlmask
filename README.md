@@ -29,3 +29,7 @@ sql = "INSERT INTO products (name, price) VALUES ('Gadget', 99.99)"
 result = mask(sql)
 print(result) # INSERT INTO products (name, price) VALUES (?, ?)
 ```
+
+## Options
+
+- `format`: Enable SQL query formatting (uppercase keywords, lowercase identifiers, reindentation) when masking queries. Useful for SQL pattern analysis to consolidate the format of the SQL.
